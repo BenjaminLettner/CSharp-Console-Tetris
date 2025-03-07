@@ -43,8 +43,8 @@ You can also run the game using Docker, which doesn't require .NET to be install
 3. Build and run the Docker container:
 
 ```bash
-# Using the improved script (recommended)
-./run-tetris-fixed.sh
+# Using the provided script (recommended)
+./run-tetris.sh
 
 # OR using docker-compose
 docker-compose up --build
@@ -61,7 +61,7 @@ Note: The Docker version uses a volume to persist high scores between container 
 If you encounter issues running the game in Docker:
 
 1. **Input Problems**: If keyboard input doesn't work correctly:
-   - Try using `run-tetris-fixed.sh` which contains specific optimizations for different operating systems
+   - Try using `run-tetris.sh` which contains specific optimizations for different operating systems
    - Ensure you're running with `-it` flags for interactive mode
    - Try a different terminal emulator
 
@@ -70,7 +70,7 @@ If you encounter issues running the game in Docker:
    - Try increasing your terminal window size
    - Use a monospace font in your terminal
 
-3. **MacOS Specific**: On Mac, use the `run-tetris-fixed.sh` script which handles Mac-specific Docker quirks
+3. **MacOS Specific**: On Mac, use the `run-tetris.sh` script which handles Mac-specific Docker quirks
 
 ## Main Menu
 
