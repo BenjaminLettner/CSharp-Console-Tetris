@@ -20,57 +20,106 @@ A feature-complete Tetris game implementation in C# using Spectre.Console for ri
 
 ## Requirements
 
+### Standard Method Requirements
+- Git (for cloning the repository)
 - .NET SDK 8.0 or higher
-- Terminal that supports ANSI color codes
-- OR Docker (see Docker section below)
+- Terminal that supports ANSI color codes (like Terminal on macOS, PowerShell/Windows Terminal on Windows, or most Linux terminals)
 
-## How to Run
+### Docker Method Requirements
+- Git (for cloning the repository)
+- Docker Desktop (for Windows and macOS) or Docker Engine (for Linux)
+- A terminal with adequate size to display the game board properly
 
-### Standard Method
-1. Clone this repository
-2. Navigate to the TetrisGame directory
-3. Run the following command:
+## Installation and Running Guide
 
+### 1. Clone the Repository
+
+**Using HTTPS:**
+```bash
+git clone https://github.com/BenjaminLettner/CSharp-Console-Tetris.git
 ```
+
+**Using SSH (if you have SSH keys set up):**
+```bash
+git clone git@github.com:BenjaminLettner/CSharp-Console-Tetris.git
+```
+
+**Using GitHub CLI:**
+```bash
+gh repo clone BenjaminLettner/CSharp-Console-Tetris
+```
+
+### 2. Navigate to the Project Directory
+
+```bash
+cd CSharp-Console-Tetris
+```
+
+### 3. Run the Game
+
+#### Standard Method (.NET)
+
+**Verify .NET Installation:**
+First, ensure you have the correct .NET SDK version installed:
+```bash
+dotnet --version
+```
+The output should be 8.0.xxx or higher.
+
+**Build and Run:**
+```bash
+dotnet build
 dotnet run
 ```
 
-### Docker Method
-You can also run the game using Docker, which doesn't require .NET to be installed on your system:
-
-1. Clone this repository
-2. Navigate to the TetrisGame directory
-3. Build and run the Docker container:
-
+**Or simply run directly:**
 ```bash
-# Using the provided script (recommended)
-./run-tetris.sh
-
-# OR using docker-compose
-docker-compose up --build
-
-# OR using Docker directly
-docker build -t tetris-game .
-docker run -it --rm tetris-game
+dotnet run
 ```
 
-Note: The Docker version uses a volume to persist high scores between container runs.
+#### Docker Method
 
-### Docker Troubleshooting
+The Docker method allows you to run the game without installing .NET. The game runs inside a container with all necessary dependencies.
 
-If you encounter issues running the game in Docker:
+**Option 1: Using the provided script (Recommended)**
 
-1. **Input Problems**: If keyboard input doesn't work correctly:
-   - Try using `run-tetris.sh` which contains specific optimizations for different operating systems
-   - Ensure you're running with `-it` flags for interactive mode
-   - Try a different terminal emulator
+This script automatically detects your OS and runs with optimized settings:
+```bash
+# Make sure the script is executable
+chmod +x run-tetris.sh
 
-2. **Display Issues**: If the game display looks odd:
-   - Make sure your terminal supports ANSI colors
-   - Try increasing your terminal window size
-   - Use a monospace font in your terminal
+# Run the script
+./run-tetris.sh
+```
 
-3. **MacOS Specific**: On Mac, use the `run-tetris.sh` script which handles Mac-specific Docker quirks
+**Option 2: Using docker-compose**
+```bash
+docker-compose up --build
+```
+
+**Option 3: Using Docker commands directly**
+```bash
+# Build the Docker image
+docker build -t tetris-game .
+
+# Run the container
+docker run -it --rm -v "$(pwd)/highscore.txt:/app/highscore.txt" tetris-game
+```
+
+### Platform-Specific Tips
+
+**Windows:**
+- Use Windows Terminal or PowerShell for best results
+- If using Command Prompt, ANSI colors might not display correctly
+- Make sure your terminal window is large enough (at least 80×30 characters)
+
+**macOS:**
+- Terminal.app or iTerm2 work well with the game
+- The Docker script has specific optimizations for macOS
+
+**Linux:**
+- Most terminal emulators work well with both methods
+- For Docker, the host network mode is used by default
 
 ## Main Menu
 
@@ -103,6 +152,27 @@ Navigate through the menu using the arrow keys and press Enter to select an opti
 - Level increases for every 10 lines cleared
 - As the level increases, pieces fall faster
 
+## Troubleshooting
+
+### General Issues
+- If the game's display looks odd, try increasing your terminal window size
+- Make sure you're using a monospace font in your terminal
+- Ensure your terminal supports ANSI color codes
+
+### Docker Troubleshooting
+
+1. **Input Problems**: If keyboard input doesn't work correctly:
+   - Try using `run-tetris.sh` which contains specific optimizations for different operating systems
+   - Ensure you're running with `-it` flags for interactive mode
+   - Try a different terminal emulator
+
+2. **Display Issues**: If the game display looks odd:
+   - Make sure your terminal supports ANSI colors
+   - Try increasing your terminal window size
+   - Use a monospace font in your terminal
+
+3. **MacOS Specific**: On Mac, use the `run-tetris.sh` script which handles Mac-specific Docker quirks
+
 ## Architecture
 
 The game is implemented using object-oriented principles:
@@ -123,4 +193,8 @@ The Docker implementation uses a multi-stage build to keep the image size small:
 
 ## Credits
 
-Developed as a programming exercise using Spectre.Console for console rendering. 
+Developed as a programming exercise using Spectre.Console for console rendering.
+
+## Contributing
+
+If you'd like to contribute to this project, please feel free to open issues or submit pull requests on GitHub. 
