@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  tetris:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tetris-game
+    # Use interactive mode and allocate a pseudo-TTY to ensure keyboard input and colors work properly
+    stdin_open: true
+    tty: true
+    # Mount the highscore file to persist scores between runs
+    volumes:
+      - ./highscore.txt:/app/highscore.txt 

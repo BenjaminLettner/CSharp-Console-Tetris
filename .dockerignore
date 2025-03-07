@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Build output
+bin/
+obj/
+
+# Temporary files
+*~
+*.swp
+*.swo
+
+# User files
+.vs/
+.vscode/
+*.user
+
+# macOS files
+.DS_Store
+
+# Existing high scores (will be mounted as a volume)
+highscore.txt
+
+# Docker files (not needed in the build context)
+Dockerfile
+docker-compose.yml
+.dockerignore
+run-tetris.sh 
