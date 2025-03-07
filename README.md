@@ -16,14 +16,17 @@ A feature-complete Tetris game implementation in C# using Spectre.Console for ri
 - Clean and consistent UI with proper borders and alignment
 - Controls for movement, rotation, soft drop, and hard drop
 - Pause functionality
+- Docker support for easy deployment and play
 
 ## Requirements
 
-- .NET SDK 6.0 or higher
+- .NET SDK 8.0 or higher
 - Terminal that supports ANSI color codes
+- OR Docker (see Docker section below)
 
 ## How to Run
 
+### Standard Method
 1. Clone this repository
 2. Navigate to the TetrisGame directory
 3. Run the following command:
@@ -31,6 +34,24 @@ A feature-complete Tetris game implementation in C# using Spectre.Console for ri
 ```
 dotnet run
 ```
+
+### Docker Method
+You can also run the game using Docker, which doesn't require .NET to be installed on your system:
+
+1. Clone this repository
+2. Navigate to the TetrisGame directory
+3. Build and run the Docker container:
+
+```bash
+# Using docker-compose (recommended)
+docker-compose up --build
+
+# OR using Docker directly
+docker build -t tetris-game .
+docker run -it --rm tetris-game
+```
+
+Note: The Docker version uses a volume to persist high scores between container runs.
 
 ## Main Menu
 
@@ -72,6 +93,14 @@ The game is implemented using object-oriented principles:
 - **Tetromino class**: Represents a Tetris piece with position, rotation, and shape
 - **Multithreading**: Uses separate threads for game loop and input handling for responsive gameplay
 - **Spectre.Console**: Used for rendering the game board, menus, pieces, and UI elements with colors
+
+## Docker Implementation
+
+The Docker implementation uses a multi-stage build to keep the image size small:
+1. First stage uses the .NET SDK image to build the application
+2. Second stage uses the smaller .NET runtime image to run the game
+3. Terminal settings are configured to ensure ANSI color support
+4. A volume is used to persist high scores between container runs
 
 ## Credits
 
