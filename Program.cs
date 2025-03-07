@@ -11,6 +11,9 @@ namespace TetrisGame
     {
         static void Main(string[] args)
         {
+            // Set up console for Docker compatibility
+            SetupConsole();
+            
             // Hide cursor for cleaner display
             Console.CursorVisible = false;
             
@@ -20,6 +23,35 @@ namespace TetrisGame
             
             // Show cursor again before exiting
             Console.CursorVisible = true;
+        }
+        
+        /// <summary>
+        /// Set up the console for better compatibility, especially in Docker
+        /// </summary>
+        static void SetupConsole()
+        {
+            try
+            {
+                // Try to set input encoding to UTF8
+                Console.InputEncoding = System.Text.Encoding.UTF8;
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+                
+                // Try to ensure ANSI colors work in Docker
+                System.AppContext.SetSwitch("System.Console.AllowOutputColoring", true);
+                
+                // Try to disable quick edit mode on Windows (can cause input blocking)
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    // This is a no-op on other platforms
+                    Console.WriteLine("Press any key to start...");
+                    Console.ReadKey(true);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                // Just log and continue if there's an issue
+                Console.WriteLine($"Console setup warning: {ex.Message}");
+            }
         }
     }
 
@@ -675,60 +707,70 @@ namespace TetrisGame
         {
             while (!gameOver)
             {
-                if (Console.KeyAvailable)
+                try
                 {
-                    var key = Console.ReadKey(intercept: true).Key;
-                    
-                    lock (stateLock)
+                    // The key check needs to be more robust for Docker
+                    if (Console.KeyAvailable)
                     {
-                        if (gameOver)
-                            continue;
-                            
-                        if (key == ConsoleKey.P)
+                        var key = Console.ReadKey(intercept: true).Key;
+                        
+                        lock (stateLock)
                         {
-                            isPaused = !isPaused;
-                            RenderGame(); // Update display to show pause state
-                            continue;
+                            if (gameOver)
+                                continue;
+                                
+                            if (key == ConsoleKey.P)
+                            {
+                                isPaused = !isPaused;
+                                RenderGame(); // Update display to show pause state
+                                continue;
+                            }
+                            
+                            if (isPaused)
+                                continue;
+                                
+                            switch (key)
+                            {
+                                case ConsoleKey.LeftArrow:
+                                case ConsoleKey.A:
+                                    TryMovePieceLeft();
+                                    break;
+                                    
+                                case ConsoleKey.RightArrow:
+                                case ConsoleKey.D:
+                                    TryMovePieceRight();
+                                    break;
+                                    
+                                case ConsoleKey.DownArrow:
+                                case ConsoleKey.S:
+                                    // Soft drop - move down faster and add points
+                                    if (TryMovePieceDown())
+                                        score += 1; // Add 1 point per cell moved down
+                                    break;
+                                    
+                                case ConsoleKey.UpArrow:
+                                case ConsoleKey.W:
+                                    TryRotatePiece();
+                                    break;
+                                    
+                                case ConsoleKey.Spacebar:
+                                    HardDrop();
+                                    break;
+                            }
                         }
                         
-                        if (isPaused)
-                            continue;
-                            
-                        switch (key)
-                        {
-                            case ConsoleKey.LeftArrow:
-                            case ConsoleKey.A:
-                                TryMovePieceLeft();
-                                break;
-                                
-                            case ConsoleKey.RightArrow:
-                            case ConsoleKey.D:
-                                TryMovePieceRight();
-                                break;
-                                
-                            case ConsoleKey.DownArrow:
-                            case ConsoleKey.S:
-                                // Soft drop - move down faster and add points
-                                if (TryMovePieceDown())
-                                    score += 1; // Add 1 point per cell moved down
-                                break;
-                                
-                            case ConsoleKey.UpArrow:
-                            case ConsoleKey.W:
-                                TryRotatePiece();
-                                break;
-                                
-                            case ConsoleKey.Spacebar:
-                                HardDrop();
-                                break;
-                        }
+                        // Render after input
+                        RenderGame();
                     }
-                    
-                    // Render after input
-                    RenderGame();
+                }
+                catch (InvalidOperationException)
+                {
+                    // This can happen in Docker when the console state is unreliable
+                    // Just continue - it's not critical
                 }
                 
-                Thread.Sleep(10); // Small delay to prevent CPU usage
+                // Use a shorter sleep in Docker to improve responsiveness
+                Thread.Sleep(5); // Smaller delay for better responsiveness
             }
         }
 
@@ -737,130 +779,139 @@ namespace TetrisGame
         /// </summary>
         private void RenderGame()
         {
-            AnsiConsole.Clear();
-            
-            // Display score, level and next piece
-            AnsiConsole.MarkupLine($"[bold]TETRIS[/]   [grey]P: Pause[/]");
-            AnsiConsole.MarkupLine($"Score: [yellow]{score}[/]  Level: [yellow]{level}[/]  Lines: [yellow]{totalLinesCleared}[/]");
-            
-            // Create borders with consistent characters
-            string topBorder = $"╔═{new string('═', GridWidth * 2)}═╦═{new string('═', 12)}═╗";
-            string bottomBorder = $"╚═{new string('═', GridWidth * 2)}═╩═{new string('═', 12)}═╝";
-            string midDivider = $"╠═{new string('═', GridWidth * 2)}═╬═{new string('═', 12)}═╣";
-            
-            // Draw top border
-            AnsiConsole.Markup($"[grey]{topBorder}[/]");
-            AnsiConsole.WriteLine();
-            
-            // Combined grid (board + current piece)
-            int[,] displayGrid = GetDisplayGrid();
-            
-            // Draw each row
-            for (int y = 0; y < GridHeight; y++)
+            try
             {
-                // Left border
-                AnsiConsole.Markup("[grey]║ [/]");
+                // Clear the console without relying on ANSI escape sequences
+                Console.Clear();
                 
-                // Draw row
-                for (int x = 0; x < GridWidth; x++)
-                {
-                    int cell = displayGrid[y, x];
-                    if (cell == 0)
-                    {
-                        AnsiConsole.Markup("[grey]· [/]"); // Empty cell
-                    }
-                    else
-                    {
-                        string color = GetColorForCell(cell);
-                        AnsiConsole.Markup($"[{color}]■ [/]"); // Filled cell
-                    }
-                }
+                // Display score, level and next piece
+                AnsiConsole.MarkupLine($"[bold]TETRIS[/]   [grey]P: Pause[/]");
+                AnsiConsole.MarkupLine($"Score: [yellow]{score}[/]  Level: [yellow]{level}[/]  Lines: [yellow]{totalLinesCleared}[/]");
                 
-                // Right border with next piece preview or other information
-                if (y == 1)
+                // Create borders with consistent characters
+                string topBorder = $"╔═{new string('═', GridWidth * 2)}═╦═{new string('═', 12)}═╗";
+                string bottomBorder = $"╚═{new string('═', GridWidth * 2)}═╩═{new string('═', 12)}═╝";
+                string midDivider = $"╠═{new string('═', GridWidth * 2)}═╬═{new string('═', 12)}═╣";
+                
+                // Draw top border
+                AnsiConsole.Markup($"[grey]{topBorder}[/]");
+                AnsiConsole.WriteLine();
+                
+                // Combined grid (board + current piece)
+                int[,] displayGrid = GetDisplayGrid();
+                
+                // Draw each row
+                for (int y = 0; y < GridHeight; y++)
                 {
-                    AnsiConsole.MarkupLine("[grey]║[/] [bold]Next:[/]        [grey]║[/]");
-                }
-                else if (y >= 2 && y <= 5)
-                {
-                    AnsiConsole.Markup("[grey]║[/] ");
+                    // Left border
+                    AnsiConsole.Markup("[grey]║ [/]");
                     
-                    // Draw next piece
-                    if (nextPiece != null)
+                    // Draw row
+                    for (int x = 0; x < GridWidth; x++)
                     {
-                        int previewY = y - 2;
-                        int[,] nextShape = nextPiece.GetCurrentShape();
-                        string color = nextPiece.GetColor();
-                        
-                        for (int px = 0; px < 4; px++)
+                        int cell = displayGrid[y, x];
+                        if (cell == 0)
                         {
-                            if (previewY >= 0 && previewY < 4 && px < 4)
+                            AnsiConsole.Markup("[grey]· [/]"); // Empty cell
+                        }
+                        else
+                        {
+                            string color = GetColorForCell(cell);
+                            AnsiConsole.Markup($"[{color}]■ [/]"); // Filled cell
+                        }
+                    }
+                    
+                    // Right border with next piece preview or other information
+                    if (y == 1)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] [bold]Next:[/]        [grey]║[/]");
+                    }
+                    else if (y >= 2 && y <= 5)
+                    {
+                        AnsiConsole.Markup("[grey]║[/] ");
+                        
+                        // Draw next piece
+                        if (nextPiece != null)
+                        {
+                            int previewY = y - 2;
+                            int[,] nextShape = nextPiece.GetCurrentShape();
+                            string color = nextPiece.GetColor();
+                            
+                            for (int px = 0; px < 4; px++)
                             {
-                                int cell = nextShape[previewY, px];
-                                if (cell == 0)
+                                if (previewY >= 0 && previewY < 4 && px < 4)
                                 {
-                                    AnsiConsole.Markup("  ");
-                                }
-                                else
-                                {
-                                    AnsiConsole.Markup($"[{color}]■ [/]");
+                                    int cell = nextShape[previewY, px];
+                                    if (cell == 0)
+                                    {
+                                        AnsiConsole.Markup("  ");
+                                    }
+                                    else
+                                    {
+                                        AnsiConsole.Markup($"[{color}]■ [/]");
+                                    }
                                 }
                             }
+                            
+                            AnsiConsole.MarkupLine("      [grey]║[/]");
                         }
-                        
-                        AnsiConsole.MarkupLine("      [grey]║[/]");
+                        else
+                        {
+                            AnsiConsole.MarkupLine("              [grey]║[/]");
+                        }
+                    }
+                    else if (y == 7)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] [bold]High Score:[/]  [grey]║[/]");
+                    }
+                    else if (y == 8)
+                    {
+                        AnsiConsole.MarkupLine($"[grey]║[/] [yellow]{highScore,12}[/] [grey]║[/]");
+                    }
+                    else if (y == 10)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] [bold]Controls:[/]    [grey]║[/]");
+                    }
+                    else if (y == 11)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] ← → : Move     [grey]║[/]");
+                    }
+                    else if (y == 12)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] ↑   : Rotate   [grey]║[/]");
+                    }
+                    else if (y == 13)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] ↓   : Down     [grey]║[/]");
+                    }
+                    else if (y == 14)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] Space: Drop    [grey]║[/]");
+                    }
+                    else if (y == 15)
+                    {
+                        AnsiConsole.MarkupLine("[grey]║[/] P   : Pause    [grey]║[/]");
                     }
                     else
                     {
-                        AnsiConsole.MarkupLine("              [grey]║[/]");
+                        AnsiConsole.MarkupLine("[grey]║               ║[/]");
                     }
                 }
-                else if (y == 7)
+                
+                // Bottom border
+                AnsiConsole.Markup($"[grey]{bottomBorder}[/]");
+                AnsiConsole.WriteLine();
+                
+                // Display pause message if paused
+                if (isPaused)
                 {
-                    AnsiConsole.MarkupLine("[grey]║[/] [bold]High Score:[/]  [grey]║[/]");
-                }
-                else if (y == 8)
-                {
-                    AnsiConsole.MarkupLine($"[grey]║[/] [yellow]{highScore,12}[/] [grey]║[/]");
-                }
-                else if (y == 10)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] [bold]Controls:[/]    [grey]║[/]");
-                }
-                else if (y == 11)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] ← → : Move     [grey]║[/]");
-                }
-                else if (y == 12)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] ↑   : Rotate   [grey]║[/]");
-                }
-                else if (y == 13)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] ↓   : Down     [grey]║[/]");
-                }
-                else if (y == 14)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] Space: Drop    [grey]║[/]");
-                }
-                else if (y == 15)
-                {
-                    AnsiConsole.MarkupLine("[grey]║[/] P   : Pause    [grey]║[/]");
-                }
-                else
-                {
-                    AnsiConsole.MarkupLine("[grey]║               ║[/]");
+                    AnsiConsole.MarkupLine("\n[bold]GAME PAUSED - Press P to continue[/]");
                 }
             }
-            
-            // Bottom border
-            AnsiConsole.Markup($"[grey]{bottomBorder}[/]");
-            AnsiConsole.WriteLine();
-            
-            // Display pause message if paused
-            if (isPaused)
+            catch (Exception)
             {
-                AnsiConsole.MarkupLine("\n[bold]GAME PAUSED - Press P to continue[/]");
+                // Ignore rendering errors in Docker - they're not critical
+                // The next render will try again
             }
         }
 

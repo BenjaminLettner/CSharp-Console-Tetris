@@ -6,9 +6,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: tetris-game
-    # Use interactive mode and allocate a pseudo-TTY to ensure keyboard input and colors work properly
+    # Interactive mode and TTY for keyboard input
     stdin_open: true
     tty: true
     # Mount the highscore file to persist scores between runs
     volumes:
-      - ./highscore.txt:/app/highscore.txt 
+      - ./highscore.txt:/app/highscore.txt
+    # Use host network mode for better terminal support (on Linux)
+    network_mode: host
+    # Set environment variables for better rendering
+    environment:
+      - TERM=xterm-256color
+      - DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION=true
+      - DOTNET_CONSOLE_ANSI=true 

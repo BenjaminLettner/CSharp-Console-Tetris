@@ -17,8 +17,10 @@ FROM mcr.microsoft.com/dotnet/runtime:8.0
 WORKDIR /app
 COPY --from=build /app/out .
 
-# Make the container more colorful (support ANSI colors)
+# Set terminal environment for better compatibility with Spectre.Console
 ENV TERM=xterm-256color
+ENV DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION=true
+ENV DOTNET_CONSOLE_ANSI=true
 
 # Set entry point
 ENTRYPOINT ["dotnet", "TetrisGame.dll"] 
